@@ -1,106 +1,128 @@
-import React,{useState,useEffect} from 'react'
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { IoCloudUploadOutline } from "react-icons/io5";
 import { ImagetoBase64 } from '../utility/imagetobase64';
 
 const NewProduct = () => {
-
-    const [data,setdata]=useState({
-        name:"",
-        category:"",
-        image:"",
-        price:"",
-        description:""
+    const [data, setData] = useState({
+        name: "",
+        category: "",
+        image: "",
+        price: "",
+        description: ""
     });
-    
+
     const [products, setProducts] = useState([]);
     const [editMode, setEditMode] = useState(false);
     const [productId, setProductId] = useState(null);
 
-    const uploadImage= async(e)=>{
-     const data = await ImagetoBase64(e.target.files[0])
-    setdata((prev)=>{
-        return{
-            ...prev,
-            image:data
+    const uploadImage = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            try {
+                const base64Data = await ImagetoBase64(file);
+                setData((prev) => ({
+                    ...prev,
+                    image: base64Data
+                }));
+              
+            } catch (error) {
+                console.error("Error converting image to base64:", error);
+                toast("Failed to upload image");
+            }
         }
-    })
-}
+    };
 
-const handleOnChange=(e)=>{
-    const {name,value}= e.target
-    setdata((prev)=>({ ...prev, [name]: value }));
-}
+    const handleOnChange = (e) => {
+        const { name, value } = e.target;
+        setData((prev) => ({ ...prev, [name]: value }));
+    };
 
-const handleSubmit= async(e)=>{
-    e.preventDefault()
-    console.log(data);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const { name, image, category, price,description } = data;
 
-    const {name,image,category,price}= data
+        if (name && image && category && price && description) {
+            let url = `${process.env.REACT_APP_SERVER_DOMIN}/uploadProduct`;
+            let method = "POST";
+            let successMessage = "Product added successfully";
 
-    if (name && image && category && price) {
-        let url = `${process.env.REACT_APP_SERVER_DOMIN}/uploadProduct`;
-        let method = "POST";
-        if (editMode) {
-            url = `${process.env.REACT_APP_SERVER_DOMIN}/updateProduct/${productId}`;
-            method = "PUT";
+            if (editMode) {
+                url = `${process.env.REACT_APP_SERVER_DOMIN}/updateProduct/${productId}`;
+                method = "PUT";
+                successMessage = "Product updated successfully";
+            }
+
+            try {
+                const fetchData = await fetch(url, {
+                    method: method,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                });
+                const fetchRes = await fetchData.json();
+     
+
+                toast(fetchRes.message || successMessage);
+
+                setData({
+                    name: "",
+                    category: "",
+                    image: "",
+                    price: "",
+                    description: ""
+                });
+                setEditMode(false);
+                setProductId(null);
+                fetchProducts();
+            } catch (error) {
+                console.error("Error submitting form:", error);
+                toast("Failed to submit form");
+            }
+        } else {
+            toast("Please enter all required fields");
         }
+    };
 
-        const fetchData = await fetch(url, {
-            method: method,
-       headers :{
-        "content-type" : "application/json"
-       },
-       body:JSON.stringify(data)
-    })
-    const fetchRes= await fetchData.json()
-
-    console.log(fetchRes)
-    toast(fetchRes.message)
-
-    setdata(()=>{
-        return{
-            name:"",
-            category:"",
-            image:"",
-            price:"",
-            description:""
+    const fetchProducts = async () => {
+        try {
+            const response = await fetch(`${process.env.REACT_APP_SERVER_DOMIN}/product`);
+            const productsData = await response.json();
+            setProducts(productsData);
+        } catch (error) {
+            console.error("Error fetching products:", error);
+            toast("Failed to fetch products");
         }
-    })
-    // setImagePreview(null);
-    setEditMode(false);
-    setProductId(null);
-}
-else{
-    toast("enter required fields")
-}
-}
-const fetchProducts = async () => {
-    const response = await fetch(`${process.env.REACT_APP_SERVER_DOMIN}/product`);
-    const productsData = await response.json();
-    setProducts(productsData);
-};
+    };
 
-const handleEdit = (product) => {
-    setdata(product);
-    setEditMode(true);
-    setProductId(product._id);
-};
+    const handleEdit = (product) => {
+        setData(product);
+        setEditMode(true);
+        setProductId(product._id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-const handleDelete = async (id) => {
-    const response = await fetch(`${process.env.REACT_APP_SERVER_DOMIN}/deleteProduct/${id}`, {
-        method: "DELETE"
-    });
-    const resData = await response.json();
-    toast(resData.message);
-    fetchProducts();
-};
+    const handleDelete = async (id) => {
+        try {
+            const response = await fetch(`${process.env.REACT_APP_SERVER_DOMIN}/deleteProduct/${id}`, {
+                method: "DELETE"
+            });
+            const resData = await response.json();
+            toast(resData.message);
+            fetchProducts();
+        } catch (error) {
+            console.error("Error deleting product:", error);
+            toast("Failed to delete product");
+        }
+    };
 
-useEffect(() => {
-    fetchProducts();
-}, []);
-  return (
-    <div className='pt-16 min-w[{calc(100vh)}] '>
+    useEffect(() => {
+        fetchProducts();
+    }, []);
+
+    return (
+        <div className='pt-16 min-w-[calc(100vh)]'>
             <div className='p-4'>
                 <form className='m-auto w-full max-w-md shadow flex flex-col p-3 bg-white' onSubmit={handleSubmit}>
                     <label>Name</label>
@@ -120,7 +142,7 @@ useEffect(() => {
                     <label>Image</label>
                     <div className="h-40 w-full bg-slate-200 my-1 rounded flex items-center justify-center relative">
                         {data.image ? (
-                            <img src={data.image} name="image" alt="Preview" className="h-full object-contain" />
+                            <img  src={data.image} name="image" alt="Preview" className="h-full object-contain" />
                         ) : (
                             <span className='text-5xl'><IoCloudUploadOutline /></span>
                         )}
@@ -157,9 +179,7 @@ useEffect(() => {
                 </div>
             </div>
         </div>
-    
-    
-      )
-}
+    );
+};
 
-export default NewProduct
+export default NewProduct;

@@ -33,6 +33,7 @@ const Card = ({image,name,price,category,loading,id}) => {
         <span className='text-red-500'>₹</span>
         <span>{price}</span>
      </p> </Link> 
+     
      <button className=' bg-yellow-500 py-1 my-2 rounded hover:bg-yellow-300 w-full' onClick={handleAddCart}>Add to Cart</button>
         </>
         )

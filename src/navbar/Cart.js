@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 
 const Cart = () => {
   const productCartItems = useSelector((state)=>state.product.cartItem);
-  console.log(productCartItems)
+  // console.log(productCartItems)
   const user = useSelector(state => state.user);
   const navigate = useNavigate()
   const [customerName, setCustomerName] = useState('');
